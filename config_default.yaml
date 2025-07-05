@@ -1,0 +1,5 @@
+api_url: https://image-api.photoroom.com/v2/edit
+api_key:
+background_prompt: "A futuristic alien landscape under a dark blue sky filled with clouds. The earth is foggy, rough and flat, resembling the surface of the moon or another planet. The atmosphere is mysterious and inspired by science fiction, with subtle luminous hues and a cosmic feel. No objects or text, just surreal terrain and dramatic lighting."
+margin: "0.1"
+output_size: "2016x1512"

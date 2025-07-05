@@ -8,9 +8,7 @@ import (
 	"mime/multipart"
 	"net/http"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"strings"
 	_ "time"
 
 	"github.com/fsnotify/fsnotify"
@@ -25,8 +23,11 @@ const (
 )
 
 type Config struct {
-	APIUrl string `yaml:"api_url"`
-	APIKey string `yaml:"api_key"`
+	APIUrl           string `yaml:"api_url"`
+	APIKey           string `yaml:"api_key"`
+	BackgroundPrompt string `yaml:"background_prompt"`
+	Margin           string `yaml:"margin"`
+	OutputSize       string `yaml:"output_size"`
 }
 
 var config *Config
@@ -124,9 +125,10 @@ func isDirectory(path string) bool {
 }
 
 func moveFile(src string, destDir string) {
-	err := exec.Command("mv", src, destDir).Run()
+	_, fileName := filepath.Split(src)
+	err := os.Rename(src, filepath.Join(destDir, fileName))
 	if err != nil {
-		log.Println("error moving file:", err)
+		log.Printf("error moving file: %s; destination: %s; error: %s", src, destDir, err.Error())
 		return
 	}
 	fmt.Printf("File %s moved to %s\n", filepath.Base(src), destDir)
@@ -135,7 +137,8 @@ func moveFile(src string, destDir string) {
 func processFile(filePath string) error {
 	log.Println("process file:", filePath)
 
-	pathParts := strings.Split(filePath, "/")
+	// Разделяем путь на каталог и имя файла
+	_, fileName := filepath.Split(filePath)
 
 	file, err := os.Open(filePath)
 	if err != nil {
@@ -155,7 +158,10 @@ func processFile(filePath string) error {
 	if err != nil {
 		return fmt.Errorf("ошибка при копировании данных файла: %w", err)
 	}
-	_ = writer.WriteField("background.color", "FFFFFF")
+	_ = writer.WriteField("background.prompt", config.BackgroundPrompt)
+	_ = writer.WriteField("margin", config.Margin)
+	_ = writer.WriteField("outputSize", config.OutputSize)
+
 	err = writer.Close()
 	if err != nil {
 		return err
@@ -193,16 +199,16 @@ func processFile(filePath string) error {
 	}
 
 	// Открываем файл для записи. Если файл не существует, он будет создан.
-	file, err = os.OpenFile(processedDir+"/"+pathParts[len(pathParts)-1], os.O_CREATE|os.O_WRONLY, 0644)
+	file, err = os.OpenFile(filepath.Join(processedDir, fileName), os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		return fmt.Errorf("Ошибка при открытии файла:", err)
+		return fmt.Errorf("Ошибка при открытии файла: %w", err)
 	}
 	defer file.Close()
 
 	// Записываем данные в файл
 	_, err = file.Write(respBody)
 	if err != nil {
-		return fmt.Errorf("Ошибка при записи в файл:", err)
+		return fmt.Errorf("Ошибка при записи в файл: %w", err)
 	}
 
 	return nil
