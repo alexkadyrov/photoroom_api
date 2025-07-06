@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 	_ "time"
 
 	"github.com/fsnotify/fsnotify"
@@ -81,6 +82,7 @@ func dirWatcher() {
 				if event.Op&fsnotify.Create == fsnotify.Create {
 					filePath := event.Name
 					if !isDirectory(filePath) {
+						time.Sleep(time.Second)
 						err := processFile(filePath)
 						if err != nil {
 							log.Println("Ошибка обработки файла:", err)
