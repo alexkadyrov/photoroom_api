@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/fs"
 	"log"
 	"mime/multipart"
 	"net/http"
@@ -44,7 +45,7 @@ func main() {
 	createDirIfNotExists(sourceDir)
 	createDirIfNotExists(destDir)
 	createDirIfNotExists(processedDir)
-	dirWatcher()
+	sourceDirWalk()
 }
 
 // Функция для загрузки конфигурации из файла
@@ -62,6 +63,28 @@ func loadConfig(path string) (*Config, error) {
 	}
 
 	return &config, nil
+}
+
+func sourceDirWalk() {
+	var wd fs.WalkDirFunc = func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			return nil
+		}
+
+		err = processFile(path)
+		if err != nil {
+			return err
+		}
+
+		moveFile(path, destDir)
+
+		return nil
+	}
+
+	err := filepath.WalkDir(sourceDir, wd)
+	if err != nil {
+		return
+	}
 }
 
 func dirWatcher() {
